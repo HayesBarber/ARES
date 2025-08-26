@@ -11,6 +11,7 @@ func main() {
     intervalStr := os.Getenv("INTERVAL_SECONDS")
     intervalSeconds, err := strconv.Atoi(intervalStr)
     if err != nil || intervalSeconds < 1 {
+        fmt.Println("Invalid interval, setting to default (30 seconds)")
         intervalSeconds = 30
     }
     ticker := time.NewTicker(time.Duration(intervalSeconds) * time.Second)
