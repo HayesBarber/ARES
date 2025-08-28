@@ -8,9 +8,16 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("No .env file found, using environment variables")
+	}
+
 	intervalStr := os.Getenv("INTERVAL_SECONDS")
 	intervalSeconds, err := strconv.Atoi(intervalStr)
 	if err != nil || intervalSeconds < 1 {
