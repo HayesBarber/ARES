@@ -22,13 +22,18 @@ func main() {
 		baseURL = "http://localhost"
 	}
 
+	bodyStr := os.Getenv("HEALTH_BODY")
+	if bodyStr == "" {
+		bodyStr = "{}"
+	}
+
 	ticker := time.NewTicker(time.Duration(intervalSeconds) * time.Second)
 	defer ticker.Stop()
 
 	for t := range ticker.C {
 		fmt.Printf("Tick at %v\n", t)
 
-		resp, err := http.Post(baseURL+"/health", "application/json", bytes.NewBuffer([]byte("{}")))
+		resp, err := http.Post(baseURL+"/health", "application/json", bytes.NewBuffer([]byte(bodyStr)))
 		if err != nil {
 			fmt.Printf("Error making POST request: %v\n", err)
 			continue
