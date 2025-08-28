@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -38,7 +39,14 @@ func main() {
 			fmt.Printf("Error making POST request: %v\n", err)
 			continue
 		}
+
+		respBody, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
-		fmt.Printf("POST /health responded with status: %s\n", resp.Status)
+		if err != nil {
+			fmt.Printf("Error reading response body: %v\n", err)
+			continue
+		}
+
+		fmt.Printf("POST /health responded with status: %s, and body: %s\n", resp.Status, string(respBody))
 	}
 }
