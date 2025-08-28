@@ -63,7 +63,13 @@ func main() {
 			fmt.Printf("Error parsing JSON: %v\n", err)
 			continue
 		}
-		fmt.Printf("Health state: %s, missing devices: %v, reason: %v\n",
-			healthResp.State, healthResp.MissingDevices, healthResp.Reason)
+
+		reason := "<nil>"
+		if healthResp.Reason != nil {
+			reason = *healthResp.Reason
+		}
+
+		fmt.Printf("Health state: %s, missing devices: %v, reason: %s\n",
+			healthResp.State, healthResp.MissingDevices, reason)
 	}
 }
