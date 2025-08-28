@@ -36,13 +36,24 @@ func main() {
 		bodyStr = "{}"
 	}
 
+	timeoutStr := os.Getenv("HTTP_TIMEOUT_SECONDS")
+	timeoutSeconds, err := strconv.Atoi(timeoutStr)
+	var client *http.Client
+	if err != nil || timeoutSeconds < 1 {
+		client = &http.Client{}
+	} else {
+		client = &http.Client{
+			Timeout: time.Duration(timeoutSeconds) * time.Second,
+		}
+	}
+
 	ticker := time.NewTicker(time.Duration(intervalSeconds) * time.Second)
 	defer ticker.Stop()
 
 	for t := range ticker.C {
 		fmt.Printf("Tick at %v\n", t)
 
-		resp, err := http.Post(baseURL+"/health", "application/json", bytes.NewBuffer([]byte(bodyStr)))
+		resp, err := client.Post(baseURL+"/health", "application/json", bytes.NewBuffer([]byte(bodyStr)))
 		if err != nil {
 			fmt.Printf("Error making POST request: %v\n", err)
 			continue
