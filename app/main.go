@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -54,6 +55,15 @@ func main() {
 			continue
 		}
 
-		fmt.Printf("POST /health responded with status: %s, and body: %s\n", resp.Status, string(respBody))
+		fmt.Printf("POST /health responded with status: %s\n", resp.Status)
+
+		var healthResp HealthResponse
+		err = json.Unmarshal(respBody, &healthResp)
+		if err != nil {
+			fmt.Printf("Error parsing JSON: %v\n", err)
+			continue
+		}
+		fmt.Printf("Health state: %s, missing devices: %v, reason: %v\n",
+			healthResp.State, healthResp.MissingDevices, healthResp.Reason)
 	}
 }
