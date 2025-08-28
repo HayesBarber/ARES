@@ -1,22 +1,86 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
-    intervalStr := os.Getenv("INTERVAL_SECONDS")
-    intervalSeconds, err := strconv.Atoi(intervalStr)
-    if err != nil || intervalSeconds < 1 {
-        fmt.Println("Invalid interval, setting to default (30 seconds)")
-        intervalSeconds = 30
-    }
-    ticker := time.NewTicker(time.Duration(intervalSeconds) * time.Second)
-    defer ticker.Stop()
-    for t := range ticker.C {
-        fmt.Printf("Tick at %v\n", t)
-    }
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("No .env file found, using environment variables")
+	}
+
+	intervalStr := os.Getenv("INTERVAL_SECONDS")
+	intervalSeconds, err := strconv.Atoi(intervalStr)
+	if err != nil || intervalSeconds < 1 {
+		fmt.Println("Invalid interval, setting to default (30 seconds)")
+		intervalSeconds = 30
+	}
+
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost"
+	}
+
+	bodyStr := os.Getenv("HEALTH_BODY")
+	if bodyStr == "" {
+		bodyStr = "{}"
+	}
+
+	timeoutStr := os.Getenv("HTTP_TIMEOUT_SECONDS")
+	timeoutSeconds, err := strconv.Atoi(timeoutStr)
+	var client *http.Client
+	if err != nil || timeoutSeconds < 1 {
+		client = &http.Client{}
+	} else {
+		client = &http.Client{
+			Timeout: time.Duration(timeoutSeconds) * time.Second,
+		}
+	}
+
+	ticker := time.NewTicker(time.Duration(intervalSeconds) * time.Second)
+	defer ticker.Stop()
+
+	for t := range ticker.C {
+		fmt.Printf("Tick at %v\n", t)
+
+		resp, err := client.Post(baseURL+"/health", "application/json", bytes.NewBuffer([]byte(bodyStr)))
+		if err != nil {
+			fmt.Printf("Error making POST request: %v\n", err)
+			continue
+		}
+
+		respBody, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			fmt.Printf("Error reading response body: %v\n", err)
+			continue
+		}
+
+		fmt.Printf("POST /health responded with status: %s\n", resp.Status)
+
+		var healthResp HealthResponse
+		err = json.Unmarshal(respBody, &healthResp)
+		if err != nil {
+			fmt.Printf("Error parsing JSON: %v\n", err)
+			continue
+		}
+
+		reason := "<nil>"
+		if healthResp.Reason != nil {
+			reason = *healthResp.Reason
+		}
+
+		fmt.Printf("Health state: %s, missing devices: %v, reason: %s\n",
+			healthResp.State, healthResp.MissingDevices, reason)
+	}
 }
