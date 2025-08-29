@@ -44,6 +44,28 @@ func parseEnvConfig() EnvConfig {
 	}
 }
 
+func postHealthCheck(client *http.Client, url string, body string) (HealthResponse, error) {
+	var healthResp HealthResponse
+
+	resp, err := client.Post(url+"/health", "application/json", bytes.NewBuffer([]byte(body)))
+	if err != nil {
+		return healthResp, err
+	}
+
+	respBody, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		return healthResp, err
+	}
+
+	err = json.Unmarshal(respBody, &healthResp)
+	if err != nil {
+		return healthResp, err
+	}
+
+	return healthResp, nil
+}
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -69,34 +91,13 @@ func main() {
 	for t := range ticker.C {
 		fmt.Printf("Tick at %v\n", t)
 
-		resp, err := client.Post(config.BaseURL+"/health", "application/json", bytes.NewBuffer([]byte(config.HealthBody)))
+		healthResp, err := postHealthCheck(client, config.BaseURL, config.HealthBody)
 		if err != nil {
 			fmt.Printf("Error making POST request: %v\n", err)
 			continue
 		}
 
-		respBody, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			fmt.Printf("Error reading response body: %v\n", err)
-			continue
-		}
-
-		fmt.Printf("POST /health responded with status: %s\n", resp.Status)
-
-		var healthResp HealthResponse
-		err = json.Unmarshal(respBody, &healthResp)
-		if err != nil {
-			fmt.Printf("Error parsing JSON: %v\n", err)
-			continue
-		}
-
-		reason := "<nil>"
-		if healthResp.Reason != nil {
-			reason = *healthResp.Reason
-		}
-
-		fmt.Printf("Health state: %s, missing devices: %v, reason: %s\n",
-			healthResp.State, healthResp.MissingDevices, reason)
+		fmt.Printf("Health state: %s, missing devices: %v, reason: %v\n",
+			healthResp.State, healthResp.MissingDevices, healthResp.Reason)
 	}
 }
