@@ -13,16 +13,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func main() {
-	err := godotenv.Load()
-	if err != nil {
-		fmt.Println("No .env file found, using environment variables")
-	}
-
+func parseEnvConfig() EnvConfig {
 	intervalStr := os.Getenv("INTERVAL_SECONDS")
 	intervalSeconds, err := strconv.Atoi(intervalStr)
 	if err != nil || intervalSeconds < 1 {
-		fmt.Println("Invalid interval, setting to default (30 seconds)")
 		intervalSeconds = 30
 	}
 
@@ -31,56 +25,83 @@ func main() {
 		baseURL = "http://localhost"
 	}
 
-	bodyStr := os.Getenv("HEALTH_BODY")
-	if bodyStr == "" {
-		bodyStr = "{}"
+	healthBody := os.Getenv("HEALTH_BODY")
+	if healthBody == "" {
+		healthBody = "{}"
 	}
 
 	timeoutStr := os.Getenv("HTTP_TIMEOUT_SECONDS")
-	timeoutSeconds, err := strconv.Atoi(timeoutStr)
+	httpTimeoutSeconds, err := strconv.Atoi(timeoutStr)
+	if err != nil || httpTimeoutSeconds < 1 {
+		httpTimeoutSeconds = 0
+	}
+
+	return EnvConfig{
+		IntervalSeconds:    intervalSeconds,
+		BaseURL:            baseURL,
+		HealthBody:         healthBody,
+		HTTPTimeoutSeconds: httpTimeoutSeconds,
+	}
+}
+
+func postHealthCheck(client *http.Client, url string, body string) (HealthResponse, error) {
+	var healthResp HealthResponse
+
+	resp, err := client.Post(url+"/health", "application/json", bytes.NewBuffer([]byte(body)))
+	if err != nil {
+		return healthResp, err
+	}
+
+	if resp.StatusCode >= 400 {
+		return healthResp, fmt.Errorf("HTTP error: %s", resp.Status)
+	}
+
+	respBody, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		return healthResp, err
+	}
+
+	err = json.Unmarshal(respBody, &healthResp)
+	if err != nil {
+		return healthResp, err
+	}
+
+	return healthResp, nil
+}
+
+func main() {
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("No .env file found")
+	}
+
+	config := parseEnvConfig()
+
+	fmt.Printf("Loaded EnvConfig: %+v\n", config)
+
 	var client *http.Client
-	if err != nil || timeoutSeconds < 1 {
+	if config.HTTPTimeoutSeconds < 1 {
 		client = &http.Client{}
 	} else {
 		client = &http.Client{
-			Timeout: time.Duration(timeoutSeconds) * time.Second,
+			Timeout: time.Duration(config.HTTPTimeoutSeconds) * time.Second,
 		}
 	}
 
-	ticker := time.NewTicker(time.Duration(intervalSeconds) * time.Second)
+	ticker := time.NewTicker(time.Duration(config.IntervalSeconds) * time.Second)
 	defer ticker.Stop()
 
 	for t := range ticker.C {
 		fmt.Printf("Tick at %v\n", t)
 
-		resp, err := client.Post(baseURL+"/health", "application/json", bytes.NewBuffer([]byte(bodyStr)))
+		healthResp, err := postHealthCheck(client, config.BaseURL, config.HealthBody)
 		if err != nil {
 			fmt.Printf("Error making POST request: %v\n", err)
 			continue
 		}
 
-		respBody, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			fmt.Printf("Error reading response body: %v\n", err)
-			continue
-		}
-
-		fmt.Printf("POST /health responded with status: %s\n", resp.Status)
-
-		var healthResp HealthResponse
-		err = json.Unmarshal(respBody, &healthResp)
-		if err != nil {
-			fmt.Printf("Error parsing JSON: %v\n", err)
-			continue
-		}
-
-		reason := "<nil>"
-		if healthResp.Reason != nil {
-			reason = *healthResp.Reason
-		}
-
-		fmt.Printf("Health state: %s, missing devices: %v, reason: %s\n",
-			healthResp.State, healthResp.MissingDevices, reason)
+		fmt.Printf("Health state: %s, missing devices: %v, reason: %v\n",
+			healthResp.State, healthResp.MissingDevices, healthResp.Reason)
 	}
 }

@@ -13,3 +13,10 @@ type HealthResponse struct {
 	MissingDevices []string    `json:"missing_devices,omitempty"`
 	Reason         *string     `json:"reason,omitempty"`
 }
+
+type EnvConfig struct {
+	IntervalSeconds    int
+	BaseURL            string
+	HealthBody         string
+	HTTPTimeoutSeconds int
+}
