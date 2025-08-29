@@ -52,6 +52,8 @@ func main() {
 
 	config := parseEnvConfig()
 
+	fmt.Printf("Loaded EnvConfig: %+v\n", config)
+
 	var client *http.Client
 	if config.HTTPTimeoutSeconds < 1 {
 		client = &http.Client{}
