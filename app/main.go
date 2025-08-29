@@ -52,6 +52,10 @@ func postHealthCheck(client *http.Client, url string, body string) (HealthRespon
 		return healthResp, err
 	}
 
+	if resp.StatusCode >= 400 {
+		return healthResp, fmt.Errorf("HTTP error: %s", resp.Status)
+	}
+
 	respBody, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
