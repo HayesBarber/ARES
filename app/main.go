@@ -50,41 +50,24 @@ func main() {
 		fmt.Println("No .env file found")
 	}
 
-	intervalStr := os.Getenv("INTERVAL_SECONDS")
-	intervalSeconds, err := strconv.Atoi(intervalStr)
-	if err != nil || intervalSeconds < 1 {
-		fmt.Println("Invalid interval, setting to default (30 seconds)")
-		intervalSeconds = 30
-	}
+	config := parseEnvConfig()
 
-	baseURL := os.Getenv("BASE_URL")
-	if baseURL == "" {
-		baseURL = "http://localhost"
-	}
-
-	bodyStr := os.Getenv("HEALTH_BODY")
-	if bodyStr == "" {
-		bodyStr = "{}"
-	}
-
-	timeoutStr := os.Getenv("HTTP_TIMEOUT_SECONDS")
-	timeoutSeconds, err := strconv.Atoi(timeoutStr)
 	var client *http.Client
-	if err != nil || timeoutSeconds < 1 {
+	if config.HTTPTimeoutSeconds < 1 {
 		client = &http.Client{}
 	} else {
 		client = &http.Client{
-			Timeout: time.Duration(timeoutSeconds) * time.Second,
+			Timeout: time.Duration(config.HTTPTimeoutSeconds) * time.Second,
 		}
 	}
 
-	ticker := time.NewTicker(time.Duration(intervalSeconds) * time.Second)
+	ticker := time.NewTicker(time.Duration(config.IntervalSeconds) * time.Second)
 	defer ticker.Stop()
 
 	for t := range ticker.C {
 		fmt.Printf("Tick at %v\n", t)
 
-		resp, err := client.Post(baseURL+"/health", "application/json", bytes.NewBuffer([]byte(bodyStr)))
+		resp, err := client.Post(config.BaseURL+"/health", "application/json", bytes.NewBuffer([]byte(config.HealthBody)))
 		if err != nil {
 			fmt.Printf("Error making POST request: %v\n", err)
 			continue
