@@ -19,4 +19,5 @@ type EnvConfig struct {
 	BaseURL            string
 	HealthBody         string
 	HTTPTimeoutSeconds int
+	MaxRetries         int
 }
