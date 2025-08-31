@@ -28,10 +28,17 @@ func parseEnvConfig() EnvConfig {
 		httpTimeoutSeconds = 0
 	}
 
+	maxRetriesStr := os.Getenv("MAX_RETRIES")
+	maxRetries, err := strconv.Atoi(maxRetriesStr)
+	if err != nil || maxRetries < 1 {
+		maxRetries = 3
+	}
+
 	return EnvConfig{
 		IntervalSeconds:    intervalSeconds,
 		BaseURL:            baseURL,
 		HealthBody:         healthBody,
 		HTTPTimeoutSeconds: httpTimeoutSeconds,
+		MaxRetries:         maxRetries,
 	}
 }
