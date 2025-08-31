@@ -33,7 +33,7 @@ func main() {
 	for t := range ticker.C {
 		fmt.Printf("Tick at %v\n", t)
 
-		healthResp, err := postHealthCheck(client, config.BaseURL, config.HealthBody)
+		healthResp, err := checkWithBackoff(client, config.BaseURL, config.HealthBody, config.MaxRetries)
 		if err != nil {
 			fmt.Printf("Error making POST request: %v\n", err)
 			continue

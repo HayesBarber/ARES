@@ -36,7 +36,7 @@ func postHealthCheck(client *http.Client, url string, body string) (HealthRespon
 	return healthResp, nil
 }
 
-func checkWithBackoff(client *http.Client, url, body string, maxRetries int) (HealthResponse, error) {
+func checkWithBackoff(client *http.Client, url string, body string, maxRetries int) (HealthResponse, error) {
 	var healthResp HealthResponse
 	var err error
 
