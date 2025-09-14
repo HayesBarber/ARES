@@ -1,7 +1,7 @@
 #!/bin/bash
 
 docker run -d \
-  --name my-prometheus \
+  --name prometheus \
   --restart unless-stopped \
   -p 9090:9090 \
   -v prometheus-volume:/prometheus \
