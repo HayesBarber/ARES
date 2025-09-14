@@ -1,3 +1,5 @@
+#!/bin/bash
+
 docker run -d \
   --name my-prometheus \
   --restart unless-stopped \
