@@ -46,3 +46,18 @@ func init() {
 	prometheus.MustRegister(missingDevicesCount)
 	prometheus.MustRegister(reasonCount)
 }
+
+func RecordHealthMetrics(resp HealthResponse, service string) {
+	switch resp.State {
+	case Healthy:
+		healthyCount.Inc()
+	case Moderate:
+		moderateCount.Inc()
+		for _, device := range resp.MissingDevices {
+			missingDevicesCount.WithLabelValues(device).Inc()
+		}
+	case Unhealthy:
+		unhealthyCount.Inc()
+		reasonCount.WithLabelValues(*resp.Reason).Inc()
+	}
+}
