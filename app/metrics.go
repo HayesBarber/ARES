@@ -47,7 +47,7 @@ func init() {
 	prometheus.MustRegister(reasonCount)
 }
 
-func RecordHealthMetrics(resp HealthResponse, service string) {
+func RecordHealthMetrics(resp HealthResponse) {
 	switch resp.State {
 	case Healthy:
 		healthyCount.Inc()
