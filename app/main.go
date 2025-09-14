@@ -29,7 +29,10 @@ func main() {
 	}
 
 	go func() {
-		http.Handle("/metrics", promhttp.Handler())
+		http.Handle("/metrics", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Printf("Metrics endpoint hit from %s at %v\n", r.RemoteAddr, time.Now())
+			promhttp.Handler().ServeHTTP(w, r)
+		}))
 		http.ListenAndServe(":2112", nil)
 	}()
 
