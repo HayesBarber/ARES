@@ -33,6 +33,8 @@ func postHealthCheck(client *http.Client, url string, body string) (HealthRespon
 		return healthResp, err
 	}
 
+	RecordHealthMetrics(healthResp)
+
 	return healthResp, nil
 }
 

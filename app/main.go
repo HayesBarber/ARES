@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -26,6 +27,11 @@ func main() {
 			Timeout: time.Duration(config.HTTPTimeoutSeconds) * time.Second,
 		}
 	}
+
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		http.ListenAndServe(":2112", nil)
+	}()
 
 	ticker := time.NewTicker(time.Duration(config.IntervalSeconds) * time.Second)
 	defer ticker.Stop()

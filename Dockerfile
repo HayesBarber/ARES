@@ -15,4 +15,6 @@ WORKDIR /app
 
 COPY --from=builder /app/ares .
 
+EXPOSE 2112
+
 ENTRYPOINT ["./ares"]
